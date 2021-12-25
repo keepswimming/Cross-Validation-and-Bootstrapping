@@ -1,0 +1,594 @@
+---
+title: "Homework 2 R markdown"
+author: "Rita Miller"
+date: '`r Sys.Date()`'
+output:
+  html_document:
+    fig_height: 4
+    fig_width: 4.5
+  pdf_document:
+    fig_height: 4
+    fig_width: 4.5
+  word_document:
+    fig_height: 4
+    fig_width: 4.5
+---
+
+```{r, setup, include=FALSE}
+require(mosaic)# Load additional packages here 
+library(readr)
+library(dplyr)
+library(FNN)
+library(boot)
+library(ggformula)
+library(GGally)
+library(boot)
+# Some customization.  You can alter or delete as desired (if you know what you are doing).
+#trellis.par.set(theme=theme.mosaic()) # change default color scheme for lattice
+knitr::opts_chunk$set(
+  tidy=FALSE,     # display code as typed
+  size="small")   # slightly smaller font for code
+```
+
+#### **Intellectual Property:**
+These problems are the intellectual property of the instructors and may not be reproduced outside of this course.
+
+**.Rmd output format**:  The setting in this markdown document is `word_document`, since it is the output format listed at the top of the options (see lines 6-8 in .Rmd).  However, you have options for `word_document` or `pdf_document` - you may choose the output format (for your reading convenience, since the output is not directly submitted).
+
+***  
+
+##################################
+## Problem 1:  Model Assessment ##
+##################################
+
+This problem practices application of proper model assessment techniques, with a multiple linear regression model.
+
+Download the data set *TreesTransformed.csv* (from Homework 2 on Canvas) and read it into R.  Reference with description of the *original* measurements may be found at: [Trees Descriptions](https://stat.ethz.ch/R-manual/R-devel/library/datasets/html/trees.html)
+
+```{r echo=FALSE}
+trees <- read.csv("TreesTransformed.csv") 
+```
+
+The general goal for this dataset is to predict *Volume* based on *Girth* and *Height*, along with some transformations of those variables.  We will be fitting a predictive model using multiple linear regression.  The model is given below:
+$Volume = \beta_0+\beta_1\cdot Girth +\beta_2\cdot Height+\beta_3\cdot Girth\cdot Height+\beta_4 \cdot Girth^2+\beta_5\cdot Girth^2\cdot Height$  
+
+Note that there are five predictors, some of which are transformations of the original two variables *Girth* and *Height*, for predicting the value of the response variable *Volume.*  The transformed variables are included in the *TreesTransformed.csv* file, named *GirthHeight* (for $Girth\cdot Height$), *Girth2* (for $Girth^2$), and *Girth2Height* (for $Girth^2\cdot Height$).  
+
+***  
+
+### Question 1 **(2 points)**
+Why is *Volume* the most reasonable **response** variable?  *Include real-world reasons (eg. physical practicalities) in your discussion.*
+
+**Text Answer**
+This data set provides measurements of the girth, height, and volume of trees. 
+
+Girth is measured in inches, height is measured in feet, and the volume of timber is measured in cubic feet.
+
+As the girth of a tree increase in inches, and height increase as it grows, it is taking up more space in the world. 
+
+Essentially, girth and height are explanatory variables and volume is the most reasonable response variable since they seem to have a relationship.
+
+***
+
+### Questions 2 **(1 point)**
+Use multiple linear regression fit the model to the full data set.  Identify the coefficient estimates ($\hat{\beta}_1$, $\hat{\beta}_2$, $\hat{\beta}_3$, $\hat{\beta}_4$, $\hat{\beta}_5$) for the five predictor terms.
+
+How many of the five predictor terms are significant at the $\alpha=0.10$ significance level? : 1  
+
+```{r}
+#create a regression model using the predictors. None of these predictors are significant
+model = lm(Volume ~ Girth + Height + GirthHeight + Girth2 + Girth2Height, data = trees)
+summary(model)
+```
+```{r}
+#written another way
+n=dim(trees)[1]
+lmfit = lm(Volume ~ ., data=trees)
+summary(lmfit)$coefficients[,4] < 0.10
+```
+
+How many of the five predictor terms are significant at the 𝛼= 0.10
+α = 0.10  I said 0
+ significance level? 
+**Multiple Choice Answer (AUTOGRADED)**: 
+
+0, 0.595
+1,  0.556
+2,  0.626
+3,  0.573
+4, or  0.567  
+5    0.792  #significant at the $\alpha=0.10$ significance level == none
+
+*** 
+
+### **We now apply k-fold cross-validation to produce honest predictions, using the process outlined in the next several questions.**
+
+### Question 3 **(1 point)**
+Starting with:
+
+`groups = rep(1:5, length=31)`
+
+Set R’s seed to 2:
+
+`set.seed(2)`
+
+and then define cvgroups (random groups for the cross-validation) using the `sample()` function.  
+
+Enter your R code below.
+
+**Code Answer**
+
+```{r}
+groups = rep(1:5, length=n)
+set.seed(2)
+cvgroups = sample(groups,n)
+# use 5-fold CV
+allpredictedCV = rep(NA,n)
+for (i in 1:5) {
+ groupi = (cvgroups == i)
+ lmfitCV = lm(formula = Volume ~ .,data=trees[!groupi,])
+ allpredictedCV[groupi] = predict.lm(lmfitCV,trees[groupi,])
+}
+allpredictedCV
+mean((allpredictedCV-trees$Volume)^2)
+```
+### Question 4 **(1 point)**
+#With the above definition of cvgroups, use the 5-fold cross-validation method to produce honest predicted values.  
+#Provide the predicted-y value for the **first** observation: (report answer to two decimal places)
+```{r}
+obs.pred = data.frame(y = y, yhat = allpredictedCV)
+plot(allpredictedCV, y, title = "Compare Observed to Predicted for Model 1",
+     ylab = "Observed", xlab = "Predicted") # base-R
+gf_point(y ~ yhat, data = obs.pred) %>%
+  gf_labs(title = "Compare Observed to Predicted for Model 1",
+          y = "Observed", x = "Predicted")
+```
+#Provide the predicted-y value for the first observation: (report answer to two decimal places)
+
+**Code for questions 4-7**
+
+```{r, echo=TRUE}
+# use 5-fold CV
+
+# Questions 4-5
+
+# Question 6
+
+# report all code in question 7
+```
+Question 4: Answer for first observation is : 10.56, 
+
+Question 5: Second observation is 9.86
+ 
+**Numeric Answer (AUTOGRADED)**:
+
+### Question 5 **(1 point)**
+Again using the 5-fold cross-validation method for producing honest predicted values, provide the predicted-y value for the **second** observation: (report answer to two decimal places)
+
+
+```{r, echo=T}
+
+Tree = c(1:4,":")
+Predicted = c("____", format(round(allpredictedCV[1], 2), nsmall = 2), 10.31, 16.36,":")
+Observed = c(10.3,10.3,10.2,16.4,":")
+TreePredictions = data.frame(Tree=Tree,
+                             Predicted=Predicted,
+                             Observed=Observed)
+knitr::kable(TreePredictions, align = "lcc") 
+```
+
+
+**Numeric Answer (AUTOGRADED)**:
+
+
+### Question 6 **(2 points)**
+
+Calculate and report the $CV_{(5)}$ based on the 5-fold cross-validation: (report answer to three decimal places)
+Answer: 9.655 correct
+
+**Numeric Answer (AUTOGRADED)**:
+
+
+### Question 7 **(3 points)**
+#Enter your full R code to perform the cross-validation and to compute the $CV_{(5)}$ measure below.  
+
+```{r}
+groups = rep(1:5, length=n)
+set.seed(2)
+cvgroups = sample(groups,n)
+# use 5-fold CV
+allpredictedCV = rep(NA,n)
+for (i in 1:5) {
+ groupi = (cvgroups == i)
+ lmfitCV = lm(formula = Volume ~ .,data=trees[!groupi,])
+ allpredictedCV[groupi] = predict.lm(lmfitCV,trees[groupi,])
+}
+allpredictedCV
+mean((allpredictedCV-trees$Volume)^2)
+
+obs.pred = data.frame(y = y, yhat = allpredictedCV)
+plot(allpredictedCV, y, title = "Compare Observed to Predicted for Model 1",
+     ylab = "Observed", xlab = "Predicted") # base-R
+gf_point(y ~ yhat, data = obs.pred) %>%
+  gf_labs(title = "Compare Observed to Predicted for Model 1",
+          y = "Observed", x = "Predicted")
+```
+
+
+#question 6
+```{r}
+CVvalue1 = mean((y - allpredictedCV)^2); CVvalue1
+```
+
+#**Code Answer**:  (see above)
+
+
+### We will now use the **bootstrap** to estimate variability of the coefficients.
+
+### Question 8 **(3 points)**:
+
+Program a function, making use of `lm()` to fit the linear regression model, that outputs the six coefficient estimates.   Set R’s seed to 2:
+
+`set.seed(2)`
+
+and then use `boot()` to produce R = 1000 bootstrap estimates for each of $\beta_0$, $\beta_1$, $\beta_2$, $\beta_3$, $\beta_4$, and $\beta_5$.  
+Enter your R code below.
+
+**Code for questions 8-10**
+
+```{r}
+library(boot)
+set.seed(2)
+beta.fn = function(inputdata,index) {
+lmfitboot = lm(formula = Volume ~ .,data=inputdata[index,])
+return(lmfitboot$coef)
+}
+boot1000 = boot(trees,beta.fn,R=1000)
+apply(boot1000$t,2,sd)
+lmfitfulldata = lm(formula = Volume ~ .,data=trees);
+summary(lmfitfulldata)$coefficients[,2]
+
+```
+
+```{r echo=TRUE}
+# Questions 9-10
+
+# Question 11
+
+```
+
+### Use your bootstrap results to estimate the **standard errors** for the coefficients.    
+
+### Question 9 **(1 point)**:
+
+Report the standard error for the intercept,
+
+$SE(\hat{\beta_0}) =$   
+
+**Numeric Answer (AUTOGRADED)**:90.85
+
+
+### Question 10 **(1 point)**:
+
+Report the standard error for the first term,
+
+$SE(\hat{\beta_1}) =$   
+
+**Numeric Answer (AUTOGRADED)**:
+Question 10: SE for Girth is 13.80
+
+### Question 11 **(2 points)**:
+
+The standard errors estimated from usual linear regression methods are shown in the R output below:
+
+```{r, echo=T}
+lmfitfulldata = lm(formula = Volume ~ .,data=trees)
+knitr::kable(summary(lmfitfulldata)[[4]], align = "lrrrr")
+remove(lmfitfulldata)
+```
+
+How do these SE values compare to the estimated standard errors computed (via bootstrap) in the previous set of questions?
+
+**Multiple Choice Answer (AUTOGRADED)**: 
+Question 11:
+A) 	The SE estimates from usual linear regression methods are **greater** than the SE estimates from bootstrap.
+
+	
+B)  The SE estimates from usual linear regression methods are **less** than the SE estimates from bootstrap.
+
+	
+C) 	The two sets of SE estimates are about the **same**.
+
+Answer is:C
+
+***
+
+#################################
+## Problem 2 - Model Selection ##
+#################################
+
+This problem practices application of proper model selection techniques, with a multiple linear regression model.
+
+We will continue working with the predictive model using multiple linear regression.  However, we will now consider selection between 6 possible models:
+
+Use LOOCV (note n = 31) method to calculate $CV_{(31)}$ for each of Models 1-6.  
+
+### Question 12 **(4 points)**:
+
+Enter your R code, including performing the cross-validation and computing the $CV_{(31)}$ measure for Model 1 below. 
+
+**Code for questions 12-14**
+```{r}
+Model1 = (Volume ~ Girth + Height + GirthHeight + Girth2 + Girth2Height)
+Model2 = (Volume ~ Girth + Height)
+Model3 = (Volume ~ Girth + Height + GirthHeight)
+Model4 = (Volume ~ Girth + Height + Girth2 + Girth2Height)
+Model5 = (Volume ~ Girth2 + Girth2Height)
+Model6 = (Volume ~ Girth2Height)
+allpredictedLOOCV = rep(NA,n)
+
+for (i in 1:n) {
+ lmfitLOOCV = lm(formula = Model2,data=trees[-i,])
+ allpredictedLOOCV[i] = predict.lm(lmfitLOOCV,trees[i,])
+}
+LOOCVmodel2 = mean((allpredictedLOOCV-trees$Volume)^2); LOOCVmodel2
+```
+### Question 13 **(1 point)**:
+
+For Model 1, report: $CV_{(31)}$ = **Numeric Answer (AUTOGRADED)**:  8.957115
+
+
+### Question 14 **(1 point)**:
+
+For Model 2, report: $CV_{(31)}$ = **Numeric Answer (AUTOGRADED)**:18.15783
+
+### Question 15 **(1 point)**:
+
+Which model would you select based on the values of $CV_{(31)}$ for LOOCV? 
+#model 6 since the LOOCV is lowest 
+
+
+### Question 16 **(1 point)**:
+
+Explain why you chose the model selected in the previous question.
+
+**Text Answer**: Based on the specifications of the models, model 6 has the lowest CV(31) value and is likely the preferred model according to the $CV_{(31)}$ criterion. 
+
+
+### Using the same split of the data into five sets as you performed in Problem 1, use 5-fold cross-validation method to calculate $CV_{(5)}$ for each of Models 1-6.  
+
+**Code for questions 17-18**
+```{r}
+# 5-fold CV
+nfolds = 5; n=dim(trees)[1] #-create a vector with the sequence 1:5, 6x times. 
+groups = rep(1:5, length=31) #manual way probably 
+set.seed(2) #reproducibility
+#groups = rep(1:nfolds, length=n) # nfolds is number of folds
+#-There is 1 remaining observation above 30, so combine "1" at the end. This appears to be setting up 
+#-5 folds for CV (because each of the 31 observation's will get labeled 1, 2, 3, 4, or 5
+cvgroups = sample(groups, n)
+
+############# Linear Model specifications #############
+Model1 = (Volume ~ Girth + Height + GirthHeight + Girth2 + Girth2Height)
+Model2 = (Volume ~ Girth + Height)
+Model3 = (Volume ~ Girth + Height + GirthHeight)
+Model4 = (Volume ~ Girth + Height + Girth2 + Girth2Height)
+Model5 = (Volume ~ Girth2 + Girth2Height)
+Model6 = (Volume ~ Girth2Height)
+
+#store all 6 models in a list so they can be accessed within the for loop for model selection.
+sixModels= list(Model1,Model2,Model3,Model4,Model5,Model6)	
+
+#create an empty vector to store CV31 results of each model
+sixModelsCV = rep(NA,6)
+
+#Loop through the calculation of CV31 calculation 6x times, one for each model.
+#m will denote the current model from the allModels list object.
+for (m in 1:6) {
+  #for each iteration (i.e. model) create an empty vector to store the results of the 1 predicted value
+  predictedCV = rep(0,n)
+  
+  for (i in 1:31){
+    #next we will fit the model onto the tree's dataset, but we want to keep out the "test" dataset which is just the current 
+    #i'th iteration since this is LOOV.
+    fit = lm(formula = allModels[[m]],data=trees[-i,])
+    #now that we've fit the model using the "training" data, we can use the model to predict the "test" data.
+    #there are 1 observation that are being predicted here in each iteration. 
+    #For the returned predicted values, we want to store them the "allpredictedCV" vector, and do it in place of that iteration
+    predictedCV[i] = predict.lm(fit,trees[i,])
+  }
+  #once the CV31 process has taken place, calculate the CV31 score, and store it into the "allmodelCV" vector at the current m 
+  #location. Each model will have its CV31 score calculated and stored, and reviewed in the further questions. 
+  allmodelCV[m] = sum((predictedCV-trees$Volume)^2)/n
+}
+
+y = trees$Volume
+allmodelCV[m] = mean((y -  predictedCV )^2); allmodelCV
+```
+### Question 17 **(1 point)**:
+
+For Model 1, report: $CV_{(5)}$ = **Numeric Answer (AUTOGRADED)**:
+Answer is:  8.96 
+
+### Question 18 **(1 point)**:
+
+For Model 2, report: $CV_{(5)}$ = **Numeric Answer (AUTOGRADED)**:
+Answer is: 18.16 
+
+### Question 19 **(1 point)**:
+
+Which model would you select based on the values of $CV_{(5)}$ for  5-fold CV? 
+
+**Multiple Choice Answer (AUTOGRADED)**:  one of  
+Model 1, (Girth) = 8.957115
+Model 2,  (Height) = 18.157829
+Model 3,  (GirthHeight) = 7.904433
+Model 4,  (Girth2) = 8.037109
+Model 5, or  (Girth2Height) = 7.075083
+Model 6  = 6.649682
+
+Answer: Model 6 has the lowest CV(5) value and is likely the preferred value according to the $CV_{(5)}$ criterion. 
+ 
+***
+
+### Question 20 **(2 points)**:
+
+Considering the form of the model that was selected by cross-validation, why does this model make sense from a practical standpoint?
+
+**Text Answer**:
+Answer: A tree's height goes in the y dimension (i.e. it moves vertically, only one measurement), whereas the girth is in the x- axis, (its basically the circumference). These two are explicitly linked because of the way a tree grows.
+
+
+*** 
+#######################################################
+## Problem 3 - Model Assessment & Selection with KNN ##
+####################################################### 
+
+This problem practices application of proper model assessment and selection techniques, with the kNN model. 
+
+**Important**:  Use the FNN library for fitting K-nearest neighbors, to obtain consistent answers.
+
+In this problem, you will once again use the K-nearest neighbors approach to analyze the gas mileage of cars. You will be predicting **mpg** from the variables **weight** and **year**, using the **Auto** data set from the ISLR package. 
+
+
+***
+
+### Question 21 **(4 points)**:
+
+Starting with:
+
+`groups = rep(1:10,length=392)
+`
+
+Set R’s seed to 2:
+
+`set.seed(2)`
+
+and use `sample()` to divide the data into **ten** sets.  
+
+Then use 10-fold cross-validation method to calculate $CV_{(10)}$  for **1**-nearest neighbor regression. 
+
+**Important**:  
+
+   * Use only **weight** and **year** (not other variables) as predictors.
+   * You will need to standardize each training and validation set inside the cross-validation, according to the means and standard deviations  of the predictors from the training set. 
+
+Enter your R code for performing the cross-validation and computing the $CV_{(10)}$ measure below. 
+
+**Code Answer**: 
+# code for #21 #22 
+
+```{r}
+library(ISLR)
+library(FNN)
+data(Auto)
+names(Auto)
+n=dim(Auto)[1]
+AutoUsed = cbind(Auto$weight,Auto$year)
+groups = rep(1:10,length=392)
+set.seed(2)
+cvgroups = sample(groups,n)
+CV10all = rep(0,30)
+for (j in 1:30) {
+allpredictedCV = rep(0,n)
+ for (i in 1:10) {
+ groupi = (cvgroups == i)
+ train.Auto = AutoUsed[cvgroups != i,]
+ train.Auto.std = scale(train.Auto)
+ valid.Auto = AutoUsed[cvgroups == i,]
+ valid.Auto.std = scale(valid.Auto,
+ center = attr(train.Auto.std, "scaled:center"),
+ scale = attr(train.Auto.std, "scaled:scale"))
+ predictedCV = knn.reg(train.Auto.std, valid.Auto.std, Auto$mpg[!groupi],
+k = j)
+ allpredictedCV[groupi] = predictedCV$pred
+ }
+ CV10 = sum((allpredictedCV-Auto$mpg)^2)/n
+ CV10all[j] = CV10
+}
+CV10all
+```
+
+### Question 22 **(2 points)**:
+
+Report the value.   
+
+$CV_{(10)}$ = **Numeric Answer (AUTOGRADED)**
+#Answer is 13.49691, round to 2 places: 13.50
+
+***
+
+### Question 23 **(1 point)**:
+
+In general, how should the $CV_{(10)}$ value compare to the value of MSE (computed by reusing the same data used to fit the model)?
+
+**Multiple Choice Answer (AUTOGRADED)**:  one of 
+
+$CV_{(10)} > MSE$,  
+$CV_{(10)} < MSE$, or  
+$CV_{(10)} \approx MSE$
+
+***
+##Answer: a) CV10 will larger because raw MSE should perform perfectly if you use the same data you trained with, to test with. 
+#It already knows what those data points are.
+
+### Question 24 **(3 points)**:
+
+Consider models 1-30 as the k-nearest neighbors regression for values of k from 1 to 30. Using the same split of the data into ten sets as you performed in the Model assessment section, use 10-fold cross-validation method to calculate CV(10) for each of Models 1-30; remember to re-standardize each training set inside the cross-validation. Make a plot of the CV(10) as a function of k.
+Embed your plot to the Quiz question.  
+
+```{r}
+library(ISLR)
+library(FNN)
+data(Auto)
+names(Auto)
+n=dim(Auto)[1]
+AutoUsed = cbind(Auto$weight,Auto$year)
+groups = rep(1:10,length=392)
+set.seed(2)
+cvgroups = sample(groups,n)
+CV10all = rep(0,30)
+for (j in 1:30) {
+allpredictedCV = rep(0,n)
+ for (i in 1:10) {
+ groupi = (cvgroups == i)
+ train.Auto = AutoUsed[cvgroups != i,]
+ train.Auto.std = scale(train.Auto)
+ valid.Auto = AutoUsed[cvgroups == i,]
+ valid.Auto.std = scale(valid.Auto,
+ center = attr(train.Auto.std, "scaled:center"),
+ scale = attr(train.Auto.std, "scaled:scale"))
+ predictedCV = knn.reg(train.Auto.std, valid.Auto.std, Auto$mpg[!groupi],
+k = j)
+ allpredictedCV[groupi] = predictedCV$pred
+ }
+ CV10 = sum((allpredictedCV-Auto$mpg)^2)/n
+ CV10all[j] = CV10
+}
+CV10all
+```
+
+#finally, plot k and the allCV values
+```{r}
+plot(k, CV10all,type="l")
+```
+
+
+**Plot upload:**
+
+***
+
+### Question 25 **(2 points)**:
+
+Which k (number of nearest neighbors) would you select based on the values of $CV_{(10)}$ for 10-fold CV?
+
+**Numeric (Integer) Answer (AUTOGRADED)**:  
+ #Answer:   k=18
+***
+
+### Question 26 **(2 points)**:
+
+Explain why you chose the k value specified in the previous question. *Comment on both model predictive ability and model complexity.*
+
+**Text Answer**: I chose k = 18 because this appears to have the lowest CV10 error value. Although it is arguable that 
+CV10 values for k leading into 17 are on the decline, whereas values after 17 start to show an increase in CV10 error.
